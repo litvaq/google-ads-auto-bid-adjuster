@@ -1,11 +1,18 @@
-/********************  CONFIGURATION  ************************/
+/******************** CONFIGURATION  ************************/
 const CONFIG = {
+  // List of Account IDs where the script should run.
+  // Format: 'XXX-XXX-XXXX'. If you leave the array empty [], the script will run on ALL child accounts.
+  ACCOUNT_IDS: [
+    '123-456-7890', 
+    '098-765-4321'
+  ],
+
   // Which estimate to use as target:
   // 'TOP_OF_PAGE' or 'FIRST_PAGE'
   TARGET_POSITION: 'TOP_OF_PAGE',
 
   // Bid limits (in account currency)
-  MAX_BID: 20.00,     // do not bid higher than this
+  MAX_BID: 30.00,     // do not bid higher than this
   MIN_BID: 0.50,      // do not bid lower than this (set 0 if no minimum)
 
   // Behavior flags
@@ -27,6 +34,36 @@ const CONFIG = {
 function main() {
   validateConfig();
 
+  let accountSelector = AdsManagerApp.accounts();
+
+  // Filter by Account IDs if they are specified in the config
+  if (CONFIG.ACCOUNT_IDS && CONFIG.ACCOUNT_IDS.length > 0) {
+    accountSelector = accountSelector.withIds(CONFIG.ACCOUNT_IDS);
+  }
+
+  const accountIterator = accountSelector.get();
+  
+  Logger.log(`Accounts found for processing: ${accountIterator.totalNumEntities()}`);
+
+  // Iterate through each account
+  while (accountIterator.hasNext()) {
+    const account = accountIterator.next();
+    
+    // Switch the script context to the specific account
+    AdsManagerApp.select(account); 
+    
+    Logger.log(`=============================================`);
+    Logger.log(`ENTERING ACCOUNT: ${account.getName()} (${account.getCustomerId()})`);
+    
+    // Run the main logic for the selected account
+    processAccount(); 
+  }
+  
+  Logger.log(`=============================================`);
+  Logger.log(`Processing of all accounts completed.`);
+}
+
+function processAccount() {
   let sel = AdsApp.keywords();
 
   // Status filters
@@ -93,7 +130,7 @@ function main() {
     changed++;
   }
 
-  Logger.log(`Checked: ${checked}, Changed: ${changed}, Skipped: ${skipped}, DRY_RUN=${CONFIG.DRY_RUN}`);
+  Logger.log(`Account summary: Checked: ${checked}, Changed: ${changed}, Skipped: ${skipped}, DRY_RUN=${CONFIG.DRY_RUN}`);
 }
 
 /*************** helpers ****************/
